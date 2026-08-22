@@ -1,0 +1,44 @@
+# Secrets
+.env
+backend/.env
+frontend/.env
+.env.*
+*.env
+!.env.example
+!backend/.env.example
+!frontend/.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Node
+node_modules/
+frontend/dist/
+frontend/.vite/
+
+# Uploads
+uploads/
+backend/uploads/
+
+# Logs
+*.log
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# _logs/ deve ser versionado — não adicionar aqui
