@@ -231,12 +231,12 @@ Sem apagar dados:
 
 ```bash
 cd /opt/workhub
-git pull
-docker compose up -d --build
+chmod +x deploy.sh   # só na primeira vez
+./deploy.sh
 docker compose exec workhub-api alembic upgrade head
 ```
 
-O schema atual é a revision `002_message_reply_to`. Depois de `git pull`, rode `alembic upgrade head` — essa migration só adiciona a coluna de resposta citada e **não** apaga dados.
+O `deploy.sh` faz `git pull && docker compose up -d --build`. O schema atual é a revision `002_message_reply_to`. Depois do deploy, rode `alembic upgrade head` — essa migration só adiciona a coluna de resposta citada e **não** apaga dados.
 
 ### Reset completo (perigoso)
 
