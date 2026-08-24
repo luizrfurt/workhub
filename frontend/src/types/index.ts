@@ -121,10 +121,15 @@ export interface OverviewContributor {
   total: number
 }
 
+export type StorageForecastStatus = 'estimated' | 'insufficient_data' | 'quota_reached'
+
 export interface StorageUsage {
   storage_used_bytes: number
   storage_quota_bytes: number
   storage_file_count: number
+  storage_avg_bytes_per_day: number | null
+  storage_quota_eta_at: string | null
+  storage_forecast_status: StorageForecastStatus
 }
 
 export interface Overview {
@@ -138,6 +143,9 @@ export interface Overview {
   storage_used_bytes: number
   storage_quota_bytes: number
   storage_file_count: number
+  storage_avg_bytes_per_day: number | null
+  storage_quota_eta_at: string | null
+  storage_forecast_status: StorageForecastStatus
   projects: OverviewProject[]
   contributors: OverviewContributor[]
 }

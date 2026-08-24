@@ -91,6 +91,8 @@ def test_admin_overview_summarizes_tasks(client, unique):
     assert body["storage_used_bytes"] == 0
     assert body["storage_file_count"] == 0
     assert body["storage_quota_bytes"] > 0
+    assert body["storage_forecast_status"] == "insufficient_data"
+    assert body["storage_quota_eta_at"] is None
     person = next(item for item in body["contributors"] if item["user_id"] == collab["user"]["id"])
     assert person["done"] >= 1
     assert person["todo"] >= 1
@@ -103,12 +105,11 @@ def test_member_can_read_storage_usage(client, unique):
     forbidden = client.get("/projects/overview", headers=auth_header(collab["access_token"]))
     assert forbidden.status_code == 403
 
-    usage = client.get("/projects/storage", headers=auth_header(collab["access_token"]))
-    assert usage.status_code == 200, usage.text
-    body = usage.json()
     assert body["storage_used_bytes"] == 0
     assert body["storage_file_count"] == 0
     assert body["storage_quota_bytes"] > 0
+    assert body["storage_forecast_status"] == "insufficient_data"
+    assert body["storage_quota_eta_at"] is None
 
 
 def test_collaborator_cannot_create_project(client, unique):

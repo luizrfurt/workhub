@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -25,6 +25,7 @@ from app.schemas.project import (
     ProjectUpdate,
     StorageUsagePublic,
 )
+from app.services.storage_forecast import WINDOW_DAYS, compute_storage_forecast
 from app.storage import storage
 
 
@@ -194,6 +195,7 @@ class ProjectService:
         total = sum(totals.values())
         active = totals[TaskStatus.TODO] + totals[TaskStatus.IN_PROGRESS]
         used_bytes, file_count = self._attachment_usage(actor.organization_id)
+        forecast = self._storage_forecast_fields(actor.organization_id, used_bytes)
         return OverviewPublic(
             project_count=len(overview_projects),
             people_count=self.projects.count_distinct_members_for_organization(
@@ -209,14 +211,17 @@ class ProjectService:
             storage_file_count=file_count,
             projects=overview_projects,
             contributors=contributors,
+            **forecast,
         )
 
     def get_storage_usage(self, actor: User) -> StorageUsagePublic:
         used_bytes, file_count = self._attachment_usage(actor.organization_id)
+        forecast = self._storage_forecast_fields(actor.organization_id, used_bytes)
         return StorageUsagePublic(
             storage_used_bytes=used_bytes,
             storage_quota_bytes=get_settings().storage_quota_bytes,
             storage_file_count=file_count,
+            **forecast,
         )
 
     def add_member(self, project_id: int, user_id: int, actor: User) -> ProjectMemberPublic:
@@ -287,6 +292,38 @@ class ProjectService:
             organization_id
         )
         return used_bytes + task_bytes, file_count + task_files
+
+    def _storage_forecast_fields(self, organization_id: int, used_bytes: int) -> dict:
+        quota_bytes = get_settings().storage_quota_bytes
+        now = datetime.now(timezone.utc)
+        since = now - timedelta(days=WINDOW_DAYS)
+        window_bytes, window_files = self.messages.sum_attachment_usage_since(
+            organization_id, since
+        )
+        task_bytes, task_files = self.tasks.sum_attachment_usage_since(
+            organization_id, since
+        )
+        oldest_candidates = [
+            self.messages.oldest_attachment_created_at(organization_id),
+            self.tasks.oldest_attachment_created_at(organization_id),
+        ]
+        oldest = min(
+            (value for value in oldest_candidates if value is not None),
+            default=None,
+        )
+        forecast = compute_storage_forecast(
+            used_bytes=used_bytes,
+            quota_bytes=quota_bytes,
+            bytes_in_window=window_bytes + task_bytes,
+            files_in_window=window_files + task_files,
+            oldest_created_at=oldest,
+            now=now,
+        )
+        return {
+            "storage_avg_bytes_per_day": forecast.avg_bytes_per_day,
+            "storage_quota_eta_at": forecast.eta_at,
+            "storage_forecast_status": forecast.status,
+        }
 
     def _task_slice(self, counts: dict) -> dict[str, int]:
         todo = int(counts.get(TaskStatus.TODO, 0) or counts.get("TODO", 0))

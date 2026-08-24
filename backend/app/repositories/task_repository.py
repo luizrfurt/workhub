@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
@@ -84,6 +86,35 @@ class TaskRepository:
         )
         used_bytes, file_count = self.db.execute(stmt).one()
         return int(used_bytes), int(file_count)
+
+    def sum_attachment_usage_since(
+        self, organization_id: int, since: datetime
+    ) -> tuple[int, int]:
+        stmt = (
+            select(
+                func.coalesce(func.sum(TaskAttachment.size), 0),
+                func.count(TaskAttachment.id),
+            )
+            .select_from(TaskAttachment)
+            .join(Task, Task.id == TaskAttachment.task_id)
+            .join(Project, Project.id == Task.project_id)
+            .where(
+                Project.organization_id == organization_id,
+                TaskAttachment.created_at >= since,
+            )
+        )
+        used_bytes, file_count = self.db.execute(stmt).one()
+        return int(used_bytes), int(file_count)
+
+    def oldest_attachment_created_at(self, organization_id: int) -> datetime | None:
+        stmt = (
+            select(func.min(TaskAttachment.created_at))
+            .select_from(TaskAttachment)
+            .join(Task, Task.id == TaskAttachment.task_id)
+            .join(Project, Project.id == Task.project_id)
+            .where(Project.organization_id == organization_id)
+        )
+        return self.db.execute(stmt).scalar_one_or_none()
 
     def counts_by_project(self) -> dict[int, dict[TaskStatus, int]]:
         stmt = select(Task.project_id, Task.status, func.count(Task.id)).group_by(

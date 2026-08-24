@@ -1,4 +1,6 @@
 from datetime import datetime
+from typing import Literal
+
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -69,6 +71,9 @@ class StorageUsagePublic(BaseModel):
     storage_used_bytes: int
     storage_quota_bytes: int
     storage_file_count: int
+    storage_avg_bytes_per_day: int | None = None
+    storage_quota_eta_at: datetime | None = None
+    storage_forecast_status: Literal["estimated", "insufficient_data", "quota_reached"]
 
 
 class OverviewPublic(BaseModel):
@@ -82,5 +87,8 @@ class OverviewPublic(BaseModel):
     storage_used_bytes: int
     storage_quota_bytes: int
     storage_file_count: int
+    storage_avg_bytes_per_day: int | None = None
+    storage_quota_eta_at: datetime | None = None
+    storage_forecast_status: Literal["estimated", "insufficient_data", "quota_reached"]
     projects: list[OverviewProject]
     contributors: list[OverviewContributor]

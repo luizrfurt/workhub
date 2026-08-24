@@ -5,6 +5,7 @@ import { getOverview } from '../../api/projects'
 import { ErrorAlert } from '../../components/ErrorAlert'
 import type { Overview } from '../../types'
 import { formatBytes, getErrorMessage, statusTitleClass } from '../../utils/format'
+import { storageForecastLabel } from '../../utils/storageForecast'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { cn } from '@/lib/utils'
@@ -281,6 +282,7 @@ function StorageUsage({ overview }: { overview: Overview }) {
             {level === 'critical' ? ' Considere remover anexos antigos ou aumentar a cota.' : ''}
           </p>
         )}
+        <p className="text-muted-foreground">{storageForecastLabel(overview)}</p>
       </CardContent>
     </Card>
   )

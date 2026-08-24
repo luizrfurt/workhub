@@ -108,6 +108,35 @@ class MessageRepository:
         used_bytes, file_count = self.db.execute(stmt).one()
         return int(used_bytes), int(file_count)
 
+    def sum_attachment_usage_since(
+        self, organization_id: int, since: datetime
+    ) -> tuple[int, int]:
+        stmt = (
+            select(
+                func.coalesce(func.sum(MessageAttachment.size), 0),
+                func.count(MessageAttachment.id),
+            )
+            .select_from(MessageAttachment)
+            .join(Message, Message.id == MessageAttachment.message_id)
+            .join(Project, Project.id == Message.project_id)
+            .where(
+                Project.organization_id == organization_id,
+                MessageAttachment.created_at >= since,
+            )
+        )
+        used_bytes, file_count = self.db.execute(stmt).one()
+        return int(used_bytes), int(file_count)
+
+    def oldest_attachment_created_at(self, organization_id: int) -> datetime | None:
+        stmt = (
+            select(func.min(MessageAttachment.created_at))
+            .select_from(MessageAttachment)
+            .join(Message, Message.id == MessageAttachment.message_id)
+            .join(Project, Project.id == Message.project_id)
+            .where(Project.organization_id == organization_id)
+        )
+        return self.db.execute(stmt).scalar_one_or_none()
+
     def list_attachment_keys_for_project(self, project_id: int) -> list[str]:
         stmt = (
             select(MessageAttachment.storage_key)
