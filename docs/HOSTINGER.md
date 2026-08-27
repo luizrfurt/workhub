@@ -72,8 +72,8 @@ DATABASE_URL=postgresql+psycopg://workhub:workhub@workhub-db:5432/workhub
 
 JWT_SECRET_KEY=<SECRET_KEY_LONGA_E_ALEATORIA>
 
-ACCESS_TOKEN_EXPIRE_MINUTES=30
-REFRESH_TOKEN_EXPIRE_DAYS=30
+ACCESS_TOKEN_EXPIRE_MINUTES=15
+REFRESH_TOKEN_EXPIRE_DAYS=180
 
 UPLOAD_MAX_SIZE_MB=5
 UPLOAD_DIRECTORY=/app/uploads
@@ -90,6 +90,8 @@ FRONTEND_URL=https://workhub.zioncor.com.br
 | Variável | Observação |
 |----------|------------|
 | `JWT_SECRET_KEY` | String longa e aleatória. Nunca use `change-me`. |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | Access JWT. Padrão 15. |
+| `REFRESH_TOKEN_EXPIRE_DAYS` | Refresh no banco, revogável. Padrão 180 (6 meses). |
 | `STORAGE_QUOTA_GB` | Cota de gestão exibida no dashboard do admin (padrão 10). **Não** reserva disco na VPS. |
 | `backend/.env` | `chmod 600`. **Nunca** commit no Git. |
 

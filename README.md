@@ -4,7 +4,7 @@ Aplicação interna para comunicação entre equipes e gerenciamento simples de 
 
 O MVP inclui:
 
-- autenticação JWT com access token (30 min) e refresh token (30 dias);
+- autenticação JWT com access token (15 min) e refresh token (180 dias);
 - cadastro de usuários somente pelo administrador;
 - projetos e membership (somente o administrador cria, edita, exclui e gerencia pessoas);
 - dashboard para administradores (tarefas ativas, concluídas e por pessoa);
@@ -46,8 +46,8 @@ Edite o `.env` e defina pelo menos:
 APP_ENV=development
 DATABASE_URL=postgresql+psycopg://workhub:workhub@localhost:5432/workhub
 JWT_SECRET_KEY=uma-chave-longa-e-secreta
-ACCESS_TOKEN_EXPIRE_MINUTES=30
-REFRESH_TOKEN_EXPIRE_DAYS=30
+ACCESS_TOKEN_EXPIRE_MINUTES=15
+REFRESH_TOKEN_EXPIRE_DAYS=180
 UPLOAD_MAX_SIZE_MB=5
 UPLOAD_DIRECTORY=./uploads
 STORAGE_QUOTA_GB=10

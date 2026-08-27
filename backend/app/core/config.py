@@ -13,8 +13,8 @@ class Settings(BaseSettings):
     app_env: str = "development"
     database_url: str
     jwt_secret_key: str
-    access_token_expire_minutes: int = 30
-    refresh_token_expire_days: int = 30
+    access_token_expire_minutes: int = 15
+    refresh_token_expire_days: int = 180
     upload_max_size_mb: int = 5
     upload_directory: str = "./uploads"
     storage_quota_gb: int = 10
