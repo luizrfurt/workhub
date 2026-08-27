@@ -87,3 +87,29 @@ export function loadUnreadCounts(userId: number): Record<number, number> {
 export function saveUnreadCounts(userId: number, values: Record<number, number>): void {
   localStorage.setItem(unreadKey(userId), JSON.stringify(values))
 }
+
+function notifySoundKey(userId: number): string {
+  return `work_hub_notify_sound_${userId}`
+}
+
+export function getStoredUserId(): number | null {
+  const raw = getStoredUser()
+  if (!raw) {
+    return null
+  }
+  try {
+    const parsed = JSON.parse(raw) as { id?: unknown }
+    const id = Number(parsed.id)
+    return Number.isInteger(id) ? id : null
+  } catch {
+    return null
+  }
+}
+
+export function loadNotificationSoundId(userId: number): string | null {
+  return localStorage.getItem(notifySoundKey(userId))
+}
+
+export function saveNotificationSoundId(userId: number, soundId: string): void {
+  localStorage.setItem(notifySoundKey(userId), soundId)
+}

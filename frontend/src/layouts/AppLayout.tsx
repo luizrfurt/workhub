@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 
 import { BrandLogo } from '../components/BrandLogo'
 import { ChangePasswordModal } from '../components/ChangePasswordModal'
+import { NotificationSoundPicker } from '../components/NotificationSoundPicker'
 import { UserAvatar } from '../components/UserAvatar'
 import { useAuth } from '../contexts/AuthContext'
 import { useNotifications } from '../contexts/NotificationsContext'
@@ -114,6 +115,7 @@ export function AppLayout() {
               <small className="text-[0.72rem] text-muted-foreground">{roleLabel(user?.role ?? '')}</small>
             </span>
           </div>
+          <NotificationSoundPicker />
           <Button type="button" variant="ghost" className="w-full" onClick={() => setChangingPassword(true)}>
             {user?.role === 'ADMIN' ? 'Minha conta' : 'Alterar senha'}
           </Button>

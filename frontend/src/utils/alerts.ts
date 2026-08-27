@@ -1,6 +1,12 @@
 import type { Message } from '../types'
+import {
+  getNotificationSound,
+  notificationSoundSrc,
+} from './notificationSounds'
+import { getStoredUserId, loadNotificationSoundId } from './storage'
 
 let audioContext: AudioContext | null = null
+let messageAudio: HTMLAudioElement | null = null
 
 function getAudioContext(): AudioContext | null {
   const AudioCtx =
@@ -22,7 +28,7 @@ export function unlockAudio(): void {
   }
 }
 
-export function playMessageSound(): void {
+function playLegacyBeep(): void {
   const context = getAudioContext()
   if (!context) {
     return
@@ -41,6 +47,31 @@ export function playMessageSound(): void {
   gain.connect(context.destination)
   oscillator.start()
   oscillator.stop(context.currentTime + 0.22)
+}
+
+export function playNotificationSound(soundId?: string): void {
+  const userId = getStoredUserId()
+  const selectedId =
+    soundId ?? (userId != null ? loadNotificationSoundId(userId) : null)
+  const sound = getNotificationSound(selectedId)
+  try {
+    if (!messageAudio) {
+      messageAudio = new Audio()
+    }
+    messageAudio.src = notificationSoundSrc(sound)
+    messageAudio.volume = 0.55
+    messageAudio.currentTime = 0
+    const playing = messageAudio.play()
+    if (playing) {
+      void playing.catch(() => playLegacyBeep())
+    }
+  } catch {
+    playLegacyBeep()
+  }
+}
+
+export function playMessageSound(): void {
+  playNotificationSound()
 }
 
 export function requestNotificationPermission(): void {
