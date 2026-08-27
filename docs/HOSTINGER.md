@@ -238,7 +238,7 @@ chmod +x deploy.sh   # só na primeira vez
 docker compose exec workhub-api alembic upgrade head
 ```
 
-O `deploy.sh` faz `git pull && docker compose up -d --build`. O schema atual é a revision `002_message_reply_to`. Depois do deploy, rode `alembic upgrade head` — essa migration só adiciona a coluna de resposta citada e **não** apaga dados.
+O `deploy.sh` faz `git pull && docker compose up -d --build`. O schema atual inclui a revision `004_general_channel` (canal Geral). Depois do deploy, rode `alembic upgrade head` — as migrations recentes **não** apagam dados.
 
 ### Reset completo (perigoso)
 

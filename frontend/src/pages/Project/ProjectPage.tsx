@@ -154,7 +154,10 @@ function ProjectWorkspace({
   const [editing, setEditing] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [pendingMember, setPendingMember] = useState<ProjectMember | null>(null)
-  const currentTab = tab === 'members' && !isAdmin ? 'chat' : tab
+  const currentTab =
+    (tab === 'members' && !isAdmin) || (tab === 'tasks' && project?.is_general)
+      ? 'chat'
+      : tab
   const { unreadFor, setActiveView, markRead } = useNotifications()
   const unreadCount = unreadFor(projectId)
 
@@ -177,7 +180,7 @@ function ProjectWorkspace({
         <div className="mb-2 flex flex-wrap items-center justify-between gap-4 max-[800px]:flex-col max-[800px]:items-start">
           <div className="min-w-0">
             <p className="mb-1 text-[0.72rem] font-bold tracking-[0.12em] text-primary uppercase">
-              Projeto
+              {project?.is_general ? 'Canal' : 'Projeto'}
             </p>
             <div className="flex min-w-0 items-center gap-2">
               <Button
@@ -197,7 +200,7 @@ function ProjectWorkspace({
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            {isAdmin && project && (
+            {isAdmin && project && !project.is_general && (
               <>
                 <Button
                   type="button"
@@ -230,9 +233,11 @@ function ProjectWorkspace({
                 </Badge>
               )}
             </TabsTrigger>
+            {project && !project.is_general && (
             <TabsTrigger value="tasks" className={tabTriggerClass}>
               Tarefas
             </TabsTrigger>
+            )}
             {isAdmin && (
               <TabsTrigger value="members" className={tabTriggerClass}>
                 Membros
@@ -260,7 +265,7 @@ function ProjectWorkspace({
           hidden={currentTab !== 'tasks'}
           className="flex min-h-0 flex-1 flex-col data-[state=inactive]:hidden"
         >
-          <TodoTab projectId={projectId} members={members} />
+          {project && !project.is_general && <TodoTab projectId={projectId} members={members} />}
         </TabsContent>
         {isAdmin && (
           <TabsContent
@@ -273,7 +278,9 @@ function ProjectWorkspace({
               <CardContent className="flex min-h-0 flex-1 flex-col">
                 <h3 className="shrink-0 text-[1.05rem] font-semibold">Integrantes do projeto</h3>
                 <p className="shrink-0 text-muted-foreground">
-                  Quem participa desta equipe e pode acessar conversa e tarefas.
+                  {project?.is_general
+                    ? 'Todos os usuários da organização participam deste canal.'
+                    : 'Quem participa desta equipe e pode acessar conversa e tarefas.'}
                 </p>
                 <ul className="my-[0.7rem] mb-4 min-h-0 flex-1 list-none overflow-y-auto p-0">
                   {members.map((member) => (
@@ -285,6 +292,7 @@ function ProjectWorkspace({
                         <UserAvatar label={member.name.slice(0, 1).toUpperCase()} size="sm" />
                         <span>{member.name}</span>
                       </span>
+                      {!project?.is_general && (
                       <Button
                         type="button"
                         variant="ghost"
@@ -295,9 +303,11 @@ function ProjectWorkspace({
                       >
                         <Trash2 />
                       </Button>
+                      )}
                     </li>
                   ))}
                 </ul>
+                {!project?.is_general && (
                 <form
                   className="flex shrink-0 gap-[0.6rem] max-[800px]:grid max-[800px]:grid-cols-1"
                   onSubmit={(event) => void onAddMember(event)}
@@ -328,6 +338,7 @@ function ProjectWorkspace({
                     <UserPlus />
                   </Button>
                 </form>
+                )}
               </CardContent>
             </Card>
           </TabsContent>

@@ -16,13 +16,20 @@ class ProjectRepository:
     def get_by_id(self, project_id: int) -> Project | None:
         return self.db.get(Project, project_id)
 
+    def get_general_for_organization(self, organization_id: int) -> Project | None:
+        stmt = select(Project).where(
+            Project.organization_id == organization_id,
+            Project.is_general.is_(True),
+        )
+        return self.db.execute(stmt).scalar_one_or_none()
+
     def list_all(self) -> list[tuple[Project, int]]:
         member_count = func.count(ProjectMember.id).label("member_count")
         stmt = (
             select(Project, member_count)
             .outerjoin(ProjectMember, ProjectMember.project_id == Project.id)
             .group_by(Project.id)
-            .order_by(Project.created_at.asc(), Project.id.asc())
+            .order_by(Project.is_general.desc(), Project.created_at.asc(), Project.id.asc())
         )
         return list(self.db.execute(stmt).all())
 
@@ -33,7 +40,7 @@ class ProjectRepository:
             .outerjoin(ProjectMember, ProjectMember.project_id == Project.id)
             .where(Project.organization_id == organization_id)
             .group_by(Project.id)
-            .order_by(Project.created_at.asc(), Project.id.asc())
+            .order_by(Project.is_general.desc(), Project.created_at.asc(), Project.id.asc())
         )
         return list(self.db.execute(stmt).all())
 
@@ -57,7 +64,7 @@ class ProjectRepository:
             .join(ProjectMember, ProjectMember.project_id == Project.id)
             .where(Project.id.in_(member_projects))
             .group_by(Project.id)
-            .order_by(Project.created_at.asc(), Project.id.asc())
+            .order_by(Project.is_general.desc(), Project.created_at.asc(), Project.id.asc())
         )
         return list(self.db.execute(stmt).all())
 

@@ -25,17 +25,7 @@ def create_project(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> ProjectPublic:
-    service = ProjectService(db)
-    project = service.create_project(payload, current_user)
-    return ProjectPublic(
-        id=project.id,
-        name=project.name,
-        description=project.description,
-        created_by=project.created_by,
-        member_count=1,
-        created_at=project.created_at,
-        updated_at=project.updated_at,
-    )
+    return ProjectService(db).create_project(payload, current_user)
 
 
 @router.get("", response_model=list[ProjectPublic])

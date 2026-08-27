@@ -21,6 +21,7 @@ from app.repositories.organization_repository import OrganizationRepository
 from app.repositories.refresh_token_repository import RefreshTokenRepository
 from app.repositories.user_repository import UserRepository
 from app.schemas.user import UserCreate, UserUpdate
+from app.services.project_service import ProjectService
 
 
 class AuthService:
@@ -47,6 +48,7 @@ class AuthService:
         )
         try:
             self.users.add(user)
+            ProjectService(self.db).ensure_general(actor.organization_id, actor.id)
             self.db.commit()
             self.db.refresh(user)
         except IntegrityError:
@@ -82,6 +84,7 @@ class AuthService:
                 is_active=True,
             )
             self.users.add(user)
+            ProjectService(self.db).ensure_general(organization.id, user.id)
             self.db.commit()
             self.db.refresh(user)
         except IntegrityError:

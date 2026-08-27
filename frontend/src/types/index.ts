@@ -32,6 +32,7 @@ export interface Project {
   member_count: number
   last_message_at: string | null
   unread_count: number
+  is_general: boolean
   created_at: string
   updated_at: string
 }

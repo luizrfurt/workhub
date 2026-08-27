@@ -24,6 +24,7 @@ class ProjectPublic(BaseModel):
     member_count: int = 0
     last_message_at: datetime | None = None
     unread_count: int = 0
+    is_general: bool = False
     created_at: datetime
     updated_at: datetime
 

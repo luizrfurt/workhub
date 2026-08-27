@@ -28,6 +28,9 @@ from app.schemas.project import (
 from app.services.storage_forecast import WINDOW_DAYS, compute_storage_forecast
 from app.storage import storage
 
+GENERAL_PROJECT_NAME = "Geral"
+GENERAL_PROJECT_DESCRIPTION = "Canal da equipe. Conversa de todos, sem tarefas."
+
 
 class ProjectService:
     def __init__(self, db: Session) -> None:
@@ -37,7 +40,7 @@ class ProjectService:
         self.tasks = TaskRepository(db)
         self.messages = MessageRepository(db)
 
-    def create_project(self, payload: ProjectCreate, actor: User) -> Project:
+    def create_project(self, payload: ProjectCreate, actor: User) -> ProjectPublic:
         require_admin(actor)
         project = Project(
             organization_id=actor.organization_id,
@@ -49,11 +52,58 @@ class ProjectService:
         self.projects.add_member(ProjectMember(project_id=project.id, user_id=actor.id))
         self.db.commit()
         self.db.refresh(project)
+        return self.get_project(project.id, actor)
+
+    def ensure_general(self, organization_id: int, created_by: int) -> Project:
+        project = self.projects.get_general_for_organization(organization_id)
+        if project is None:
+            project = Project(
+                organization_id=organization_id,
+                name=GENERAL_PROJECT_NAME,
+                description=GENERAL_PROJECT_DESCRIPTION,
+                created_by=created_by,
+                is_general=True,
+            )
+            self.projects.add(project)
+        self._sync_general_members(project)
         return project
+
+    def _sync_general_members(self, project: Project) -> None:
+        existing = {user.id for _membership, user in self.projects.list_members(project.id)}
+        for user in self.users.list_active_by_organization(project.organization_id):
+            if user.id in existing:
+                continue
+            self.projects.add_member(ProjectMember(project_id=project.id, user_id=user.id))
+
+    def _to_public(
+        self,
+        project: Project,
+        member_count: int,
+        last_message_at: datetime | None,
+        unread_count: int,
+    ) -> ProjectPublic:
+        return ProjectPublic(
+            id=project.id,
+            name=project.name,
+            description=project.description,
+            created_by=project.created_by,
+            member_count=member_count,
+            last_message_at=last_message_at,
+            unread_count=unread_count,
+            is_general=project.is_general,
+            created_at=project.created_at,
+            updated_at=project.updated_at,
+        )
+
+    def assert_allows_tasks(self, project: Project) -> None:
+        if project.is_general:
+            raise ForbiddenError("O canal Geral não tem tarefas.")
 
     def update_project(self, project_id: int, payload: ProjectUpdate, actor: User) -> ProjectPublic:
         require_admin(actor)
         project = self._require_accessible_project(project_id, actor)
+        if project.is_general:
+            raise ConflictError("O canal Geral não pode ser alterado.")
         if payload.name is not None:
             project.name = payload.name.strip()
         if "description" in payload.model_fields_set:
@@ -65,6 +115,8 @@ class ProjectService:
     def delete_project(self, project_id: int, actor: User) -> None:
         require_admin(actor)
         project = self._require_accessible_project(project_id, actor)
+        if project.is_general:
+            raise ConflictError("O canal Geral não pode ser excluído.")
         attachment_keys = self.messages.list_attachment_keys_for_project(project.id)
         attachment_keys.extend(self.tasks.list_attachment_keys_for_project(project.id))
         self.projects.delete(project)
@@ -81,6 +133,8 @@ class ProjectService:
             pass
 
     def list_projects(self, actor: User) -> list[ProjectPublic]:
+        self.ensure_general(actor.organization_id, actor.id)
+        self.db.commit()
         rows = (
             self.projects.list_for_organization(actor.organization_id)
             if is_admin(actor)
@@ -91,16 +145,11 @@ class ProjectService:
             actor.id, [project.id for project, _count in rows]
         )
         return [
-            ProjectPublic(
-                id=project.id,
-                name=project.name,
-                description=project.description,
-                created_by=project.created_by,
+            self._to_public(
+                project,
                 member_count=count,
                 last_message_at=last_times.get(project.id),
                 unread_count=unread_counts.get(project.id, 0),
-                created_at=project.created_at,
-                updated_at=project.updated_at,
             )
             for project, count in rows
         ]
@@ -108,18 +157,13 @@ class ProjectService:
     def get_project(self, project_id: int, actor: User) -> ProjectPublic:
         project = self._require_accessible_project(project_id, actor)
         members = self.projects.list_members(project.id)
-        return ProjectPublic(
-            id=project.id,
-            name=project.name,
-            description=project.description,
-            created_by=project.created_by,
+        return self._to_public(
+            project,
             member_count=len(members),
             last_message_at=self.messages.last_message_at(project.id),
             unread_count=self.messages.unread_counts_for_user(actor.id, [project.id]).get(
                 project.id, 0
             ),
-            created_at=project.created_at,
-            updated_at=project.updated_at,
         )
 
     def mark_project_read(self, project_id: int, actor: User) -> None:
@@ -158,6 +202,8 @@ class ProjectService:
         overview_projects: list[OverviewProject] = []
         totals = {TaskStatus.TODO: 0, TaskStatus.IN_PROGRESS: 0, TaskStatus.DONE: 0}
         for project, member_count in projects:
+            if project.is_general:
+                continue
             counts = by_project.get(project.id, {})
             item = self._task_slice(counts)
             totals[TaskStatus.TODO] += item["todo"]
@@ -227,6 +273,8 @@ class ProjectService:
     def add_member(self, project_id: int, user_id: int, actor: User) -> ProjectMemberPublic:
         require_admin(actor)
         project = self._require_accessible_project(project_id, actor)
+        if project.is_general:
+            raise ConflictError("Todos já participam do canal Geral.")
 
         user = self.users.get_by_id(user_id)
         if user is None or not user.is_active or user.organization_id != actor.organization_id:
@@ -251,6 +299,8 @@ class ProjectService:
     def remove_member(self, project_id: int, user_id: int, actor: User) -> None:
         require_admin(actor)
         project = self._require_accessible_project(project_id, actor)
+        if project.is_general:
+            raise ConflictError("Não é possível remover alguém do canal Geral.")
 
         membership = self.projects.get_membership(project.id, user_id)
         if membership is None:

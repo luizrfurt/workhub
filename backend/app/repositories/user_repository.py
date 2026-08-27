@@ -19,6 +19,17 @@ class UserRepository:
         stmt = select(User).order_by(User.name.asc())
         return list(self.db.execute(stmt).scalars().all())
 
+    def list_active_by_organization(self, organization_id: int) -> list[User]:
+        stmt = (
+            select(User)
+            .where(
+                User.organization_id == organization_id,
+                User.is_active.is_(True),
+            )
+            .order_by(User.name.asc())
+        )
+        return list(self.db.execute(stmt).scalars().all())
+
     def list_by_organization(self, organization_id: int) -> list[User]:
         stmt = (
             select(User)

@@ -126,6 +126,14 @@ export function DashboardPage() {
                     {project.name.slice(0, 1).toUpperCase()}
                   </span>
                   <h2 className="text-[1.05rem] font-semibold">{project.name}</h2>
+                  {project.is_general && (
+                    <Badge
+                      variant="secondary"
+                      className="mt-1 w-fit rounded-full border border-[rgba(110,168,255,0.28)] bg-[rgba(110,168,255,0.12)] px-[0.7rem] py-[0.22rem] text-[0.78rem] font-semibold text-primary"
+                    >
+                      Canal
+                    </Badge>
+                  )}
                   <p className="text-muted-foreground">{project.description || 'Sem descrição'}</p>
                   <Badge
                     variant="secondary"
@@ -135,7 +143,7 @@ export function DashboardPage() {
                   </Badge>
                 </CardContent>
               </Link>
-              {isAdmin && (
+              {isAdmin && !project.is_general && (
                 <div className="flex flex-wrap gap-2 px-(--card-spacing) pb-(--card-spacing)">
                   <Button
                     type="button"

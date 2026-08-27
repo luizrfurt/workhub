@@ -26,16 +26,19 @@ class TaskService:
         self.project_service = ProjectService(db)
 
     def list_tasks(self, project_id: int, actor: User) -> list[TaskPublic]:
-        self.project_service.assert_can_access(project_id, actor)
+        project = self.project_service.assert_can_access(project_id, actor)
+        self.project_service.assert_allows_tasks(project)
         return [self._to_public(task) for task in self.tasks.list_by_project(project_id)]
 
     def get_task(self, project_id: int, task_id: int, actor: User) -> TaskPublic:
-        self.project_service.assert_can_access(project_id, actor)
+        project = self.project_service.assert_can_access(project_id, actor)
+        self.project_service.assert_allows_tasks(project)
         task = self._get_task_in_project(project_id, task_id)
         return self._to_public(task)
 
     def create_task(self, project_id: int, payload: TaskCreate, actor: User) -> TaskPublic:
-        self.project_service.assert_can_access(project_id, actor)
+        project = self.project_service.assert_can_access(project_id, actor)
+        self.project_service.assert_allows_tasks(project)
         self._assert_assignee_is_member(project_id, payload.assigned_user_id)
 
         position = payload.position
@@ -66,6 +69,9 @@ class TaskService:
         self, project_id: int, task_id: int, payload: TaskUpdate, actor: User
     ) -> TaskPublic:
         self.project_service.assert_can_access(project_id, actor)
+        project = self.projects.get_by_id(project_id)
+        assert project is not None
+        self.project_service.assert_allows_tasks(project)
         task = self._get_task_in_project(project_id, task_id)
         self._assert_can_manage(task, actor)
 
@@ -101,6 +107,9 @@ class TaskService:
     def delete_task(self, project_id: int, task_id: int, actor: User) -> None:
         require_admin(actor)
         self.project_service.assert_can_access(project_id, actor)
+        project = self.projects.get_by_id(project_id)
+        assert project is not None
+        self.project_service.assert_allows_tasks(project)
         task = self._get_task_in_project(project_id, task_id)
         status = task.status
         storage_keys = [item.storage_key for item in task.attachments or []]
@@ -124,6 +133,9 @@ class TaskService:
         self, project_id: int, task_id: int, actor: User, file: UploadFile
     ) -> TaskPublic:
         self.project_service.assert_can_access(project_id, actor)
+        project = self.projects.get_by_id(project_id)
+        assert project is not None
+        self.project_service.assert_allows_tasks(project)
         task = self._get_task_in_project(project_id, task_id)
         self._assert_can_manage(task, actor)
         data = file.file.read()
@@ -149,7 +161,8 @@ class TaskService:
     def get_attachment_for_download(
         self, project_id: int, task_id: int, attachment_id: int, actor: User
     ) -> TaskAttachment:
-        self.project_service.assert_can_access(project_id, actor)
+        project = self.project_service.assert_can_access(project_id, actor)
+        self.project_service.assert_allows_tasks(project)
         attachment = self.tasks.get_attachment(attachment_id)
         if attachment is None:
             raise NotFoundError("Anexo não encontrado.")
